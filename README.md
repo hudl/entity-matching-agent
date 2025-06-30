@@ -75,6 +75,7 @@ Before running the agent, create a CSV file on your desktop with the GSL entity 
 1. Create a new CSV file on your desktop (e.g., `input_ids.csv`)
 2. Add a column header named `source_gsl_id`
 3. Add the GSL entity IDs that need to be resolved, one per row
+4. Update the script with the csv file paths.
 
 **Example CSV structure:**
 
