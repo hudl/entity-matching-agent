@@ -12,13 +12,6 @@ The Entity Matching AI Agent performs intelligent entity resolution by:
 - **Intelligent Matching**: Compares source entities with candidates using Hudl's AWS Bedrock provisioned models
 - **Result Ranking**: Provides ranked suggestions for the most suitable target candidates
 
-## Features
-
-- 🤖 **Agentic AI Architecture**: Self-directing agent with tool-based capabilities
-- 🔍 **Multi-source Data Integration**: Combines internal data with external context
-- 📊 **Advanced Matching Algorithms**: Leverages LangChain and AWS Bedrock
-- 🚀 **Scalable Processing**: Built for handling large-scale entity matching tasks
-
 ## Prerequisites
 
 Before running this application, ensure you have:
