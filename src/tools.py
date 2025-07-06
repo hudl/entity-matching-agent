@@ -27,19 +27,17 @@ HEADERS = {
 # ---Step 1: Tool Definitions ---
 
 
-# --- Tool 1: Get Entity to be Merged ---
-class MergeEntityDetailsInput(BaseModel):
-    gsl_id: str = Field(
-        description="The unique GSL ID of the source entity to be merged."
-    )
+# --- Tool 1: Get Team by ID ---
+class GetTeamByIdInput(BaseModel):
+    team_id: str = Field(description="The unique ID of the team to retrieve.")
 
 
-@tool(args_schema=MergeEntityDetailsInput)
-def get_entity_by_id(gsl_id: str) -> Dict[str, Any]:
-    """Fetches the full details for a single entity by its unique GSL ID."""
+@tool(args_schema=GetTeamByIdInput)
+def get_team_by_id(team_id: str) -> Dict[str, Any]:
+    """Fetches the full details for a single team by its unique ID."""
     get_team_query = f"""
         query getTeams {{
-          searchableTeams(query: [{{ field: ID, operator: EQUALS, values: ["{gsl_id}"] }}]) {{
+          searchableTeams(query: [{{ field: ID, operator: EQUALS, values: ["{team_id}"] }}]) {{
             items {{ id name sport gender regionName teamType teamMembers {{ preferredJersey individual {{ id commonName {{ fullName }} }} }} competitions {{ id name }} }}
           }}
         }}
@@ -56,7 +54,9 @@ def get_entity_by_id(gsl_id: str) -> Dict[str, Any]:
             return {"error": "GraphQL query failed.", "details": data["errors"]}
 
         items = data.get("data", {}).get("searchableTeams", {}).get("items", [])
-        return items[0] if items else {"error": f"No entity found with GSL ID {gsl_id}"}
+        return (
+            items[0] if items else {"error": f"No entity found with GSL ID {team_id}"}
+        )
 
     except requests.exceptions.RequestException as e:
         return {"error": f"API call failed: {e}"}
@@ -64,30 +64,26 @@ def get_entity_by_id(gsl_id: str) -> Dict[str, Any]:
         return {"error": "Failed to parse API response or find entity."}
 
 
-# --- Tool 2: Search for Matching Entities ---
-class TargetEntityDetailsInput(BaseModel):
-    source_gsl_id: str = Field(
-        description="The GSL ID of the source entity to compare against potential matches."
-    )
+# --- Tool 2: Search for Matching Teams ---
+class FindMatchingTeamsInput(BaseModel):
+    source_team_id: str = Field(description="The ID of the source team")
     search_term: str = Field(
-        description="A name or keyword to search for matching entities."
+        description="A name or keyword to search for matching teams."
     )
 
 
-@tool(args_schema=TargetEntityDetailsInput)
-def find_matching_entities(
-    source_gsl_id: str, search_term: str
-) -> List[Dict[str, Any]]:
-    """Searches for entities by a name and returns a list of potential matches."""
+@tool(args_schema=FindMatchingTeamsInput)
+def find_matching_teams(source_team_id: str, search_term: str) -> List[Dict[str, Any]]:
+    """Searches for teams by a keyword and returns a list of potential matches."""
 
     encoded_source_id = base64.b64encode(
-        f"GSLSearchableTeam{source_gsl_id}".encode("utf-8")
+        f"GSLSearchableTeam{source_team_id}".encode("utf-8")
     ).decode("utf-8")
 
     get_teams_query = f"""
         query searchTeams {{
           searchableTeams(searchTerm: "{search_term}") {{
-            items {{ id name sport gender regionName teamType teamMembers {{ preferredJersey individual {{ id commonName {{ fullName }} }} }} competitions {{ id name }} }}
+            items {{ id }}
           }}
         }}
     """
@@ -159,6 +155,104 @@ def add_multiple_numbers(numbers: List[float]) -> int:
         return 0
 
 
-# --- Tool 5: The Google Search Tool ---
+# --- Tool 5: Get Fixture by ID ---
+class GetFixtureByIdInput(BaseModel):
+    fixture_id: str = Field(description="The unique ID of the fixture to retrieve.")
+
+
+@tool(args_schema=GetFixtureByIdInput)
+def get_fixture_by_id(fixture_id: str) -> Dict[str, Any]:
+    """Fetches the full details for a single fixture by its unique ID."""
+    query = f"""
+        query getFixtures {{
+          searchableFixtures(searchTerm: "{fixture_id}") {{
+            nodes {{ id localDate homeTeam {{ id name }} awayTeam {{ id name }} sport competitionName result {{ scores {{ teamId standardScore additionalScore }} }} individuals {{ nodes {{ id commonName {{ fullName }} }} }} fixtureRosters {{ nodes {{ individualId teamId jersey qualifier }} }}
+            }}
+          }}
+        }}
+    """
+    try:
+        response = requests.post(
+            GRAPHQL_ENDPOINT,
+            headers=HEADERS,
+            data=json.dumps({"query": query}),
+        )
+        response.raise_for_status()
+        data = response.json()
+        if "errors" in data:
+            return {"error": "GraphQL query failed.", "details": data["errors"]}
+
+        nodes = data.get("data", {}).get("searchableFixtures", {}).get("nodes", [])
+        return (
+            nodes[0] if nodes else {"error": f"No fixture found with ID {fixture_id}"}
+        )
+
+    except requests.exceptions.RequestException as e:
+        return {"error": f"API call failed: {e}"}
+    except (json.JSONDecodeError, IndexError):
+        return {"error": "Failed to parse API response or find fixture."}
+
+
+# --- Tool 6: Find Matching Fixtures ---
+class FindMatchingFixturesInput(BaseModel):
+    source_fixture_id: str = Field(description="The ID of the source fixture")
+    search_term: str = Field(
+        description="A name or keyword to search for matching fixtures."
+    )
+
+
+@tool(args_schema=FindMatchingFixturesInput)
+def find_matching_fixtures(
+    source_fixture_id: str, search_term: str
+) -> List[Dict[str, Any]]:
+    """Searches for fixtures by a keyword and returns a list of potential matches."""
+
+    encoded_source_id = base64.b64encode(
+        f"GSLSearchableFixture{source_fixture_id}".encode("utf-8")
+    ).decode("utf-8")
+
+    query = f"""
+        query searchFixtures {{
+          searchableFixtures(searchTerm: "{search_term}") {{
+            nodes {{ id }}
+          }}
+        }}
+    """
+    try:
+        response = requests.post(
+            GRAPHQL_ENDPOINT,
+            headers=HEADERS,
+            data=json.dumps({"query": query}),
+        )
+        response.raise_for_status()
+        data = response.json()
+        if "errors" in data:
+            print(f"GraphQL API returned an error: {data['errors']}")
+            return []
+
+        searched_items = (
+            data.get("data", {}).get("searchableFixtures", {}).get("nodes", [])
+        )
+        return [item for item in searched_items if item.get("id") != encoded_source_id]
+
+    except requests.exceptions.RequestException as e:
+        print(f"API call failed: {e}")
+        return []
+    except json.JSONDecodeError:
+        print("Failed to parse API response.")
+        return []
+
+
+# --- Tool 8: The Google Search Tool ---
 # tavily_tool = TavilySearchResults(max_results=3)
 # tavily_tool.name = "tavily_search_results_json"
+
+
+def get_agent_tools(entity_type: str) -> List[Any]:
+    """Returns a list of tools based on the entity type."""
+    if entity_type.lower() == "team":
+        return [get_team_by_id, find_matching_teams]
+    elif entity_type.lower() == "fixture":
+        return [get_fixture_by_id, find_matching_fixtures]
+    else:
+        raise ValueError(f"Unsupported entity type: {entity_type}")

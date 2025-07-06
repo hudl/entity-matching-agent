@@ -1,16 +1,18 @@
-# Entity Matching AI Agent
+# Autonomous Entity Resolution AI Agent
 
-An intelligent agentic AI system for automated entity matching and resolution. This agent leverages multiple data sources and Hudl's AWS Bedrock provisioned models to identify and match entities across different datasets.
+An intelligent, multi-agent AI system for automated entity resolution. This system leverages a chain of specialized agents and Hudl's AWS Bedrock-provisioned models to dynamically identify, match, and resolve different entity types like teams and fixtures from various data sources.
 
 ## Overview
 
-The Entity Matching AI Agent performs intelligent entity resolution by:
+The Autonomous Entity Resolution AI Agent performs intelligent entity resolution through a modular, chain-of-agents approach:
 
-- **Data Retrieval**: Fetches source entity data using provided tools
-- **Context Enhancement**: Adds contextual information through Google Search integration
-- **Candidate Discovery**: Identifies potential matching candidates from target datasets
-- **Intelligent Matching**: Compares source entities with candidates using Hudl's AWS Bedrock provisioned models
-- **Result Ranking**: Provides ranked suggestions for the most suitable target candidates
+- **Dynamic Agent Orchestration**: A main orchestrator (`src/main.py`) configures and chains agents based on user-defined tasks.
+- **Specialized Agents**:
+  - **Data Gathering Agent**: Fetches entity IDs from specified data sources (PostgreSQL or CSV).
+  - **Entity Resolution Agent**: Performs the core matching logic using a dynamically selected set of tools and audit rules based on the entity type (e.g., 'team', 'fixture').
+- **Flexible Data Sourcing**: Ingests data from PostgreSQL databases or local CSV files.
+- **Advanced Matching Logic**: Utilizes sophisticated, weighted audit rules tailored to each entity type. For instance, fixture matching is based on a detailed audit of the associated teams.
+- **Extensible Framework**: Easily add new entity types, data sources, or audit rules by extending the configuration in `src/main.py` and `src/sys_prompts.py`.
 
 ## Prerequisites
 
@@ -18,8 +20,7 @@ Before running this application, ensure you have:
 
 - AWS CLI configured with Hudl main account access
 - Python 3.8+ installed
-- Tavily AI API access
-- Jupyter Notebook environment
+- Access to a PostgreSQL database (if using it as a data source)
 
 ## Installation & Setup
 
@@ -42,13 +43,23 @@ source entity-matching-env/bin/activate  # On macOS/Linux
 entity-matching-env\Scripts\activate     # On Windows
 ```
 
-### 3. API Configuration And Setting Env Varible
+### 3. Environment Variable Configuration
 
-Obtain your Tavily AI API key and set it as an environment variable:
+This project uses a `.env` file to manage environment variables. Create a file named `.env` in the root directory of the project and add the following variables.
 
-```bash
-export TAVILY_API_KEY="your_tavily_api_key_here"
-export AWS_PROFILE="hudl_aws_main_account_profile_name"
+```
+# Hudl API Key for GraphQL endpoint
+HUDL_API_KEY="your_hudl_api_key_here"
+
+# AWS Profile for Boto3
+AWS_PROFILE="your_hudl_aws_main_account_profile_name"
+
+# PostgreSQL Database Credentials (only required if using postgres data source)
+DB_HOST="your_db_host"
+DB_NAME="your_db_name"
+DB_USER="your_db_user"
+DB_PASS="your_db_password"
+DB_PORT="5432"
 ```
 
 ### 4. Dependencies
@@ -56,44 +67,51 @@ export AWS_PROFILE="hudl_aws_main_account_profile_name"
 Install the required Python packages:
 
 ```bash
-pip install -U requests langchain langchain-aws langchain-community pydantic boto3 tavily-python
+pip install -r requirements.txt
 ```
 
 ## Usage
 
-### 1. Prepare Input Data
+The primary way to run the system is through the command-line interface of the main orchestrator script.
 
-Before running the agent, create a CSV file on your desktop with the GSL entity IDs that need to be resolved and merged:
+### Command-Line Execution
 
-1. Create a new CSV file on your desktop (e.g., `input_ids.csv`)
-2. Add a column header named `source_gsl_id`
-3. Add the GSL entity IDs that need to be resolved, one per row
-4. Update the script with the csv file paths.
-
-**Example CSV structure:**
-
-```csv
-source_gsl_id
-12345
-67890
-11111
-22222
-```
-
-### 2. Execute the Agent
-
-Launch the Jupyter notebook:
+Execute the agent from your terminal using the following command structure:
 
 ```bash
-jupyter notebook er_agent.ipynb
+python src/main.py {entity_type} {data_source} {source_input}
 ```
 
-Navigate to the notebook in your browser and run all cells to start the entity matching process.
+**Arguments:**
 
-## Technologies Used
+- `entity_type`: The type of entity to process.
+  - Supported: `team`, `fixture`
+- `data_source`: The source of the entity IDs.
+  - Supported: `csv`, `postgres`
+- `source_input`: The location of the data.
+  - For `csv`: The absolute file path to your input CSV.
+  - For `postgres`: The name of the table containing the IDs.
 
-- **LangChain**: Agent framework and tool orchestration
-- **AWS Bedrock**: Large language model inference
-- **Tavily AI**: Web search and context enhancement
-- **Boto3**: AWS SDK for Python
-- **Jupyter**: Interactive development environment
+### Example Scenarios
+
+**1. Matching Teams from a CSV File:**
+
+```bash
+python src/main.py team csv "/Users/suraj.salunke/Desktop/teams_to_match.csv"
+```
+
+_The CSV file must contain a header named `source_gsl_id`._
+
+**2. Matching Fixtures from a PostgreSQL Table:**
+
+```bash
+python src/main.py fixture postgres "sports_fixtures_table"
+```
+
+### Output
+
+The agent will print its progress to the console and save the final results to a new CSV file in the `results/` directory. The output filename will be dynamically generated based on the entity type and data source (e.g., `output_team_csv.csv`).
+
+## Development & Notebooks
+
+The original Jupyter notebooks (`langchain_ob/`) are still available for development, testing, and exploration purposes but are not part of the main autonomous workflow.

@@ -2,6 +2,7 @@ import os
 import csv
 from typing import List
 import psycopg2
+from psycopg2 import sql
 
 # DB Credentials
 DB_HOST = os.getenv("DB_HOST")
@@ -16,7 +17,7 @@ if not all([DB_HOST, DB_NAME, DB_USER, DB_PASS]):
 
 
 # --- Function to Fetch IDs from PostgreSQL ---
-def fetch_ids_from_postgres(limit) -> List[str]:
+def fetch_ids_from_postgres(table_name: str, limit: int) -> List[str]:
     """Connects to PostgreSQL and fetches the first N GSL IDs from the team table."""
     conn = None
     try:
@@ -24,9 +25,13 @@ def fetch_ids_from_postgres(limit) -> List[str]:
         conn = psycopg2.connect(
             host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASS, port=DB_PORT
         )
-        query = "SELECT id FROM team ORDER BY RANDOM() LIMIT %s;"
+        # Use sql.Identifier to safely quote the table name
+        query = sql.SQL("SELECT id FROM {} ORDER BY RANDOM() LIMIT %s").format(
+            sql.Identifier(table_name)
+        )
 
         with conn.cursor() as cur:
+            # Pass the limit as the only parameter
             cur.execute(query, (limit,))
             rows = [item[0] for item in cur.fetchall()]
             print(f"Successfully fetched {len(rows)} IDs from the database.")

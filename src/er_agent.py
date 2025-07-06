@@ -10,51 +10,41 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from tools import (
-    get_entity_by_id,
-    find_matching_entities,
-    add_multiple_numbers,
-)
+from tools import get_agent_tools, add_multiple_numbers
 from util import parse_agent_output
 from data_sources import fetch_ids_from_postgres, fetch_ids_from_csv
-from sys_prompts import WEIGHTED_SCORING_PROMPT, BINARY_SCORING_PROMPT
+from sys_prompts import get_entity_matching_system_prompt
 
 
 # --- Create the Agent with a Prompt ---
 
-# The list of tools
-tools = [
-    get_entity_by_id,
-    find_matching_entities,
-    add_multiple_numbers,
-]
 
-llm = ChatBedrock(
-    model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
-    model_kwargs={"temperature": 0.0},
-)
+def create_entity_matching_agent(scoring_prompt: str, tools: list):
+    """Creates an agent with a specific scoring prompt and tools."""
 
-# This is the core prompt - the "brain" of the agent.
-# It tells the agent HOW to perform the comparison task step-by-step.
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", WEIGHTED_SCORING_PROMPT),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ]
-)
+    llm = ChatBedrock(
+        model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        model_kwargs={"temperature": 0.0},
+    )
 
-# Create the agent and executor
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, tools=tools, verbose=True, max_iterations=25
-)
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", scoring_prompt),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ]
+    )
+
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    return AgentExecutor(agent=agent, tools=tools, verbose=True, max_iterations=25)
 
 
 # --- Main Batch Processing Logic ---
 
 
-def run_batch_process(source_ids: List[str], output_file: str):
+def run_batch_process(
+    agent_executor: AgentExecutor, source_ids: List[str], output_file: str
+):
     """Processes a list of source IDs with the agent and writes results to a CSV."""
     print(f"Starting batch process for {len(source_ids)} IDs...")
 
@@ -94,14 +84,24 @@ def run_batch_process(source_ids: List[str], output_file: str):
 
 
 if __name__ == "__main__":
-    # 1. Fetch IDs from the database
-    ids_to_process = fetch_ids_from_csv(
-        file_path="/Users/suraj.salunke/Desktop/teams_mock_data.csv"
-    )
+    # This part remains for potential direct execution,
+    # but the main orchestration will be in main.py
+    ids_to_process = fetch_ids_from_postgres(table_name="fixture", limit=10)
 
-    # 2. Run the batch process only if IDs were successfully fetched
     if ids_to_process:
-        output_csv_file = "output_results_weighted_iter_2.csv"
-        run_batch_process(source_ids=ids_to_process, output_file=output_csv_file)
+        output_csv_file = "results/f_output_results_weighted_iter-1.csv"
+        # Create an agent with the default weighted prompt
+        entity_matching_agent = create_entity_matching_agent(
+            get_entity_matching_system_prompt("weighted", "fixture"),
+            [
+                *get_agent_tools("fixture"),
+                add_multiple_numbers,
+            ],
+        )
+        run_batch_process(
+            agent_executor=entity_matching_agent,
+            source_ids=ids_to_process,
+            output_file=output_csv_file,
+        )
     else:
         print("No IDs fetched from the database. Halting process.")
