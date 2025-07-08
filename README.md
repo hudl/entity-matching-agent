@@ -1,10 +1,10 @@
-# Autonomous Entity Resolution AI Agent
+# Autonomous Entity Matching AI Agent
 
-An intelligent AI agent for automated entity resolution. This system leverages a configurable agent and Hudl's AWS Bedrock-provisioned models to dynamically identify, match, and resolve different entity types like teams and fixtures from various data sources.
+An intelligent AI agent for automated entity matching. This system leverages a configurable agent and Hudl's AWS Bedrock-provisioned models to dynamically identify, match, and resolve different entity types like teams and fixtures from various data sources.
 
 ## Overview
 
-The Autonomous Entity Resolution AI Agent performs intelligent entity resolution through a modular, single-agent approach:
+The Autonomous Entity Matching AI Agent performs intelligent entity matching through a modular, single-agent approach:
 
 - **Dynamic Agent Configuration**: A main orchestrator (`src/main.py`) configures the agent with the correct tools and audit rules based on user-defined tasks (e.g., entity type, scoring method).
 - **Flexible Data Sourcing**: Ingests entity IDs from PostgreSQL databases or local CSV files.
