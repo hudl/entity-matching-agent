@@ -86,10 +86,12 @@ def run_batch_process(
 if __name__ == "__main__":
     # This part remains for potential direct execution,
     # but the main orchestration will be in main.py
-    ids_to_process = fetch_ids_from_postgres(table_name="fixture", limit=10)
+    ids_to_process = fetch_ids_from_csv(
+        file_path="/Users/suraj.salunke/Desktop/teams_mock_data.csv", limit=100
+    )
 
     if ids_to_process:
-        output_csv_file = "results/f_output_results_weighted_iter-1.csv"
+        output_csv_file = "results/f_output_results_weighted_iter-4.csv"
         # Create an agent with the default weighted prompt
         entity_matching_agent = create_entity_matching_agent(
             get_entity_matching_system_prompt("weighted", "fixture"),

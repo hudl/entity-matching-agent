@@ -5,7 +5,6 @@ from typing import Tuple
 
 def parse_agent_output(output_text: str) -> Tuple[str, str, str]:
     """Parses the agent's final answer to extract the best match ID and justification."""
-    print(f"Parsing agent output: {output_text}")
 
     match_id = "no match found"
     justification = output_text
@@ -24,10 +23,7 @@ def parse_agent_output(output_text: str) -> Tuple[str, str, str]:
             decoded_bytes = base64.b64decode(match_id)
             decoded_id = decoded_bytes.decode("utf-8")
 
-            if decoded_id.startswith("GSLSearchableTeam"):
-                match_id = decoded_id.replace("GSLSearchableTeam", "", 1)
-            else:
-                match_id = decoded_id
+            match_id = re.sub(r"^GSLSearchable(Team|Fixture)", "", decoded_id)
 
         except Exception as e:
             print(f"Could not Base64 decode '{match_id}': {e}")

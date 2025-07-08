@@ -165,7 +165,7 @@ def get_fixture_by_id(fixture_id: str) -> Dict[str, Any]:
     """Fetches the full details for a single fixture by its unique ID."""
     query = f"""
         query getFixtures {{
-          searchableFixtures(searchTerm: "{fixture_id}") {{
+          searchableFixtures(query: [{{ field: ID, operator: EQUALS, values: ["{fixture_id}"] }}]) {{
             nodes {{ id localDate homeTeam {{ id name }} awayTeam {{ id name }} sport competitionName result {{ scores {{ teamId standardScore additionalScore }} }} individuals {{ nodes {{ id commonName {{ fullName }} }} }} fixtureRosters {{ nodes {{ individualId teamId jersey qualifier }} }}
             }}
           }}
