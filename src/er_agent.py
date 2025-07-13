@@ -42,6 +42,45 @@ def create_entity_matching_agent(scoring_prompt: str, tools: list):
 # --- Main Batch Processing Logic ---
 
 
+async def run_single_process(agent_executor: AgentExecutor, source_id: str):
+    """Processes a single source ID with the agent and returns the result."""
+    if not source_id:
+        print("Error: No source ID provided.")
+        return None
+
+    print(f"\n--- Processing Source GSL ID: {source_id} ---")
+    user_input = f"Please research and compare the entity with GSL ID {source_id} to find the best merge candidate. Follow your instructions precisely."
+
+    try:
+        response = await agent_executor.ainvoke({"input": user_input})
+        output_data = response.get("output", [])
+        output_text = ""
+        if isinstance(output_data, list) and output_data:
+            if isinstance(output_data[0], dict) and "text" in output_data[0]:
+                output_text = output_data[0]["text"]
+        elif isinstance(output_data, str):
+            output_text = output_data
+
+        best_match_id, justification, score = parse_agent_output(output_text)
+
+        print(f"--- Result for {source_id}: Found match '{best_match_id}' ---")
+        return {
+            "source_gsl_id": source_id,
+            "best_match_gsl_id": best_match_id,
+            "score": score,
+            "justification": justification,
+        }
+
+    except Exception as e:
+        print(f"!! An error occurred while processing {source_id}: {e} !!")
+        return {
+            "source_gsl_id": source_id,
+            "best_match_gsl_id": "processing error",
+            "score": str(e),
+            "justification": "",
+        }
+
+
 def run_batch_process(
     agent_executor: AgentExecutor, source_ids: List[str], output_file: str
 ):
@@ -81,45 +120,6 @@ def run_batch_process(
                 writer.writerow([source_id, "processing error", str(e), ""])
 
     print(f"\nBatch process complete. Results saved to '{output_file}'.")
-
-
-def run_single_process(agent_executor: AgentExecutor, source_id: str):
-    """Processes a single source ID with the agent and returns the result."""
-    if not source_id:
-        print("Error: No source ID provided.")
-        return None
-
-    print(f"\n--- Processing Source GSL ID: {source_id} ---")
-    user_input = f"Please research and compare the entity with GSL ID {source_id} to find the best merge candidate. Follow your instructions precisely."
-
-    try:
-        response = agent_executor.invoke({"input": user_input})
-        output_data = response.get("output", [])
-        output_text = ""
-        if isinstance(output_data, list) and output_data:
-            if isinstance(output_data[0], dict) and "text" in output_data[0]:
-                output_text = output_data[0]["text"]
-        elif isinstance(output_data, str):
-            output_text = output_data
-
-        best_match_id, justification, score = parse_agent_output(output_text)
-
-        print(f"--- Result for {source_id}: Found match '{best_match_id}' ---")
-        return {
-            "source_gsl_id": source_id,
-            "best_match_gsl_id": best_match_id,
-            "score": score,
-            "justification": justification,
-        }
-
-    except Exception as e:
-        print(f"!! An error occurred while processing {source_id}: {e} !!")
-        return {
-            "source_gsl_id": source_id,
-            "best_match_gsl_id": "processing error",
-            "score": str(e),
-            "justification": "",
-        }
 
 
 if __name__ == "__main__":

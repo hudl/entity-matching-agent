@@ -47,7 +47,7 @@ entity_matching_agent = create_entity_matching_agent(
 
 
 @app.get("/match/")
-def match_entity(source_gsl_id: str):
+async def match_entity(source_gsl_id: str):
     """
     Processes a single source GSL ID to find a matching entity.
     - **source_gsl_id**: The GSL ID of the source entity to process.
@@ -57,7 +57,7 @@ def match_entity(source_gsl_id: str):
             status_code=400, detail="source_gsl_id query parameter cannot be empty."
         )
 
-    result = run_single_process(
+    result = await run_single_process(
         agent_executor=entity_matching_agent, source_id=source_gsl_id
     )
 
@@ -66,7 +66,7 @@ def match_entity(source_gsl_id: str):
 
     if (
         result.get("best_match_gsl_id") == "processing error"
-        or result.get("best_match_gsl_id") == "decoding error"
+        or result.get("best_match_gsl_id") == "decoding_error"
     ):
         raise HTTPException(
             status_code=500, detail=f"Agent processing error: {result.get('score')}"
