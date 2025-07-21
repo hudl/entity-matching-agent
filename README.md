@@ -1,16 +1,5 @@
 # Autonomous Entity Matching AI Agent
 
-An intelligent AI agent for automated entity matching. This system leverages a configurable agent and Hudl's AWS Bedrock-provisioned models to dynamically identify, match, and resolve different entity types like teams and fixtures from various data sources.
-
-## Overview
-
-The Autonomous Entity Matching AI Agent performs intelligent entity matching through a modular, single-agent approach:
-
-- **Dynamic Agent Configuration**: A main orchestrator (`src/main.py`) configures the agent with the correct tools and audit rules based on user-defined tasks (e.g., entity type, scoring method).
-- **Flexible Data Sourcing**: Ingests entity IDs from PostgreSQL databases or local CSV files.
-- **Advanced Matching Logic**: Utilizes sophisticated, weighted or binary audit rules tailored to each entity type. For instance, fixture matching is based on a detailed audit of the associated teams.
-- **Extensible Framework**: Easily add new entity types or audit rules by extending the configuration in `src/tools.py` and `src/sys_prompts.py`.
-
 ## Prerequisites
 
 Before running this application, ensure you have:
@@ -74,6 +63,10 @@ The primary way to run the system is through the command-line interface of the m
 ### Command-Line Execution
 
 Execute the agent from your terminal using the following command structure:
+
+```bash
+python src/er_agent.py
+```
 
 ```bash
 python src/main.py {entity_type} {data_source} {source_input} {output_path} [--scoring_method {weighted|binary}]
